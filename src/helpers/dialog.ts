@@ -63,7 +63,6 @@ export class Dialog<T> {
   }
 
   private readonly _windowFeatures = ',menubar=no,toolbar=no,location=no,resizable=yes,scrollbars=yes,status=no';
-  private static readonly key = 'VGVtcG9yYXJ5S2V5Rm9yT0pIQXV0aA==';
 
   private _result: Promise<T>;
   get result(): Promise<T> {
@@ -124,10 +123,6 @@ export class Dialog<T> {
       try {
         const options = 'width=' + this.size.width + ',height=' + this.size.height + this._windowFeatures;
         window.open(this.url, this.url, options);
-        if (Utilities.isIE) {
-          this._pollLocalStorageForToken(resolve, reject);
-        }
-        else {
           const handler = event => {
             if (event.origin === location.origin) {
               window.removeEventListener('message', handler, false);
@@ -135,32 +130,11 @@ export class Dialog<T> {
             }
           };
           window.addEventListener('message', handler);
-        }
       }
       catch (exception) {
         return reject(new DialogError('Unexpected error occurred while creating popup', exception));
       }
     });
-  }
-
-  private _pollLocalStorageForToken(resolve: (value: T) => void, reject: (reason: DialogError) => void) {
-    localStorage.removeItem(Dialog.key);
-    const POLL_INTERVAL = 400;
-    let interval = setInterval(() => {
-      try {
-        const data = localStorage.getItem(Dialog.key);
-        if (!(data == null)) {
-          clearInterval(interval);
-          localStorage.removeItem(Dialog.key);
-          return resolve(this._safeParse(data));
-        }
-      }
-      catch (exception) {
-        clearInterval(interval);
-        localStorage.removeItem(Dialog.key);
-        return reject(new DialogError('Unexpected error occurred in the dialog', exception));
-      }
-    }, POLL_INTERVAL);
   }
 
   /**
@@ -189,12 +163,7 @@ export class Dialog<T> {
         Office.context.ui.messageParent(JSON.stringify(<DialogResult>{ parse, value }));
       }
       else {
-        if (Utilities.isIE) {
-          localStorage.setItem(Dialog.key, JSON.stringify(<DialogResult>{ parse, value }));
-        }
-        else if (window.opener) {
-          window.opener.postMessage(JSON.stringify(<DialogResult>{ parse, value }), location.origin);
-        }
+        window.opener.postMessage(JSON.stringify(<DialogResult>{ parse, value }), location.origin);
         window.close();
       }
     }
