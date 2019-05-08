@@ -5,7 +5,7 @@ import { Observable } from 'rxjs/Observable';
 import { Exception } from '../errors/exception';
 
 const NOTIFICATION_DEBOUNCE = 300;
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/;
 
 export enum StorageType {
   LocalStorage,
@@ -123,7 +123,7 @@ export class Storage<T> {
   delete(key: string): T {
     try {
       let value = this.get(key);
-      if (value === undefined) {
+      if (value === null || value === undefined) {
         throw new ReferenceError(`Key: ${key} not found.`);
       }
       const scopedKey = this._scope(key);
@@ -150,7 +150,8 @@ export class Storage<T> {
    */
   has(key: string): boolean {
     this._validateKey(key);
-    return this.get(key) !== undefined;
+    let value = this.get(key);
+    return value !== null && value !== undefined;
   }
 
   /**
@@ -249,6 +250,7 @@ export class Storage<T> {
   /**
    * Determine if the value was a Date type and if so return a Date object instead.
    * https://blog.mariusschulz.com/2016/04/28/deserializing-json-strings-as-javascript-date-objects
+   * Regex matches an ISO date string.
    */
   private _reviver(_key: string, value: any) {
     if (isString(value) && DATE_REGEX.test(value)) {

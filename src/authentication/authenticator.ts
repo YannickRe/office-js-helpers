@@ -61,12 +61,17 @@ export class Authenticator {
     useMicrosoftTeams: boolean = false
   ): Promise<IToken> {
     let token = this.tokens.get(provider);
-    let hasTokenExpired = TokenStorage.hasExpired(token);
+    if (token) {
+      let hasTokenExpired = TokenStorage.hasExpired(token);
 
-    if (!hasTokenExpired && !force) {
-      return Promise.resolve(token);
+      if (!hasTokenExpired && !force) {
+        return Promise.resolve(token);
+      }
+
+      if (hasTokenExpired) {
+        this.tokens.delete(provider);
+      }
     }
-
     return this._openAuthDialog(provider, useMicrosoftTeams);
   }
 
@@ -122,14 +127,10 @@ export class Authenticator {
     }
 
     let params: any = {};
-    let regex = /([^&=]+)=([^&]*)/g;
+    let regex = /[\/]?([^&=]+)=([^&]*)/g;
     let matchParts;
 
     while ((matchParts = regex.exec(segment)) !== null) {
-      // Fixes bugs when the state parameters contains a / before them
-      if (matchParts[1] === '/state') {
-        matchParts[1] = matchParts[1].replace('/', '');
-      }
       params[decodeURIComponent(matchParts[1])] = decodeURIComponent(matchParts[2]);
     }
 

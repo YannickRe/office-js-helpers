@@ -187,8 +187,8 @@ export class Utilities {
   /**
    * Utility to check if the browser is IE11 or Edge.
    */
-  static get isIEOrEdge() {
-    return /Edge\/|Trident\//gi.test(window.navigator.userAgent);
+  static get isIE() {
+    return /Trident\//gi.test(window.navigator.userAgent);
   }
 
   /**

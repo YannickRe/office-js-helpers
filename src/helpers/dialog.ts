@@ -124,7 +124,7 @@ export class Dialog<T> {
       try {
         const options = 'width=' + this.size.width + ',height=' + this.size.height + this._windowFeatures;
         window.open(this.url, this.url, options);
-        if (Utilities.isIEOrEdge) {
+        if (Utilities.isIE) {
           this._pollLocalStorageForToken(resolve, reject);
         }
         else {
@@ -189,7 +189,7 @@ export class Dialog<T> {
         Office.context.ui.messageParent(JSON.stringify(<DialogResult>{ parse, value }));
       }
       else {
-        if (Utilities.isIEOrEdge) {
+        if (Utilities.isIE) {
           localStorage.setItem(Dialog.key, JSON.stringify(<DialogResult>{ parse, value }));
         }
         else if (window.opener) {
