@@ -165,7 +165,7 @@ export class EndpointStorage extends Storage<IEndpointConfiguration> {
   registerAzureADAuth(clientId: string, tenant: string, overrides?: IEndpointConfiguration) {
     let defaults = <IEndpointConfiguration>{
       clientId: clientId,
-      baseUrl: `https://login.windows.net/${tenant}`,
+      baseUrl: `https://login.microsoftonline.com/${tenant}`,
       authorizeUrl: '/oauth2/authorize',
       resource: 'https://graph.microsoft.com',
       responseType: 'token',
