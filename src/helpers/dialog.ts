@@ -63,6 +63,7 @@ export class Dialog<T> {
   }
 
   private readonly _windowFeatures = ',menubar=no,toolbar=no,location=no,resizable=yes,scrollbars=yes,status=no';
+  private static readonly key = 'VGVtcG9yYXJ5S2V5Rm9yT0pIQXV0aA==';
 
   private _result: Promise<T>;
   get result(): Promise<T> {
@@ -71,7 +72,12 @@ export class Dialog<T> {
         this._result = this._teamsDialog();
       }
       else if (Utilities.isAddin) {
-        this._result = this._addinDialog();
+        if (!Utilities.isEdge) {
+          this._result = this._addinDialog();
+        }
+        else {
+          this._result = this._edgeDialog();
+        }
       }
       else {
         this._result = this._webDialog();
@@ -137,6 +143,41 @@ export class Dialog<T> {
     });
   }
 
+  private _edgeDialog(): Promise<T> {
+    return new Promise((resolve, reject) => {
+      Office.context.ui.displayDialogAsync(this.url, { width: this.size.width$, height: this.size.height$ }, (result: Office.AsyncResult) => {
+        if (result.status === Office.AsyncResultStatus.Failed) {
+          reject(new DialogError(result.error.message, result.error));
+        }
+        else {
+          let dialog = result.value as Office.DialogHandler;
+          this._pollLocalStorageForToken(resolve, reject, dialog);
+        }
+      });
+    });
+  }
+
+  private _pollLocalStorageForToken(resolve: (value: T) => void, reject: (reason: DialogError) => void, dialog: Office.DialogHandler) {
+    localStorage.removeItem(Dialog.key);
+    const POLL_INTERVAL = 400;
+    let interval = setInterval(() => {
+      try {
+        const data = localStorage.getItem(Dialog.key);
+        if (!(data == null)) {
+          clearInterval(interval);
+          localStorage.removeItem(Dialog.key);
+          resolve(this._safeParse(data));
+          dialog.close();
+        }
+      }
+      catch (exception) {
+        clearInterval(interval);
+        localStorage.removeItem(Dialog.key);
+        reject(new DialogError('Unexpected error occurred in the dialog', exception));
+      }
+    }, POLL_INTERVAL);
+  }
+
   /**
    * Close any open dialog by providing an optional message.
    * If more than one dialogs are attempted to be opened
@@ -160,7 +201,12 @@ export class Dialog<T> {
         microsoftTeams.authentication.notifySuccess(JSON.stringify(<DialogResult>{ parse, value }));
       }
       else if (Utilities.isAddin) {
-        Office.context.ui.messageParent(JSON.stringify(<DialogResult>{ parse, value }));
+        if (!Utilities.isEdge) {
+          Office.context.ui.messageParent(JSON.stringify(<DialogResult>{ parse, value }));
+        }
+        else {
+          localStorage.setItem(Dialog.key, JSON.stringify(<DialogResult>{ parse, value }));
+        }
       }
       else {
         window.opener.postMessage(JSON.stringify(<DialogResult>{ parse, value }), location.origin);
